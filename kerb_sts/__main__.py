@@ -39,21 +39,25 @@ def _get_options():
                         dest='daemon', action='store_true', default=False)
     parser.add_argument('-r', '--default_role', help="Name of the Role to use as the default",
                         dest='default_role', default=None)
-    parser.add_argument('-d', '--domain', help="AD Domain if using a Kerberos keytab or NTLM auth. Requires a username and password/keytab",
+    parser.add_argument('-d', '--domain',
+                        help="AD Domain if using a Kerberos keytab or NTLM auth. Requires a username and password/keytab",
                         dest='domain', default=None)
     parser.add_argument('--keytab', help="The Kerberos keytab file. Requires a username and domain",
                         dest='keytab', default=None)
-    parser.add_argument('--form', help="Authenticate using the ADFS html form. Requires a username, password and domain",
-                        dest='form', default=None)
+    parser.add_argument('--form',
+                        help="Authenticate using the ADFS html form. Requires a username, password and domain",
+                        dest='form', action='store_true', default=None)
     parser.add_argument('--list', help="List the available roles",
                         dest='list', action='store_true', default=False)
-    parser.add_argument('-p', '--password', help="AD Password if generating a temporary Kerberos token. Requires a username and domain",
+    parser.add_argument('-p', '--password',
+                        help="AD Password if generating a temporary Kerberos token. Requires a username and domain",
                         dest='password', default=None)
     parser.add_argument('--refresh', help="Time to wait (minutes) between refreshing the tokens.",
                         dest='refresh', default=30)
     parser.add_argument('--region', help="AWS Region for STS (defaults to {})".format(DEFAULT_REGION),
                         dest='region', default=DEFAULT_REGION)
-    parser.add_argument('-u', '--username', help="AD Username if generating a temporary Kerberos token. Requires a domain and password/keytab",
+    parser.add_argument('-u', '--username',
+                        help="AD Username if generating a temporary Kerberos token. Requires a domain and password/keytab",
                         dest='username', default=None)
     parser.add_argument('-v', '--verbose', help="Turns on debug logging",
                         dest="verbose", action='store_true', default=None)
@@ -118,7 +122,13 @@ def _setup_authenticator(options):
     :return: an Authenticator object
     """
     if options.username and options.domain:
-        if options.password:
+        if options.form:
+            authenticator = auth.FormAuthenticator(
+                username=options.username,
+                password=options.password,
+                domain=options.domain
+            )
+        elif options.password:
             authenticator = auth.NtlmAuthenticator(
                 username=options.username,
                 password=options.password,
@@ -130,18 +140,12 @@ def _setup_authenticator(options):
                 keytab=options.keytab,
                 domain=options.domain
             )
-        elif options.form:
-            authenticator = auth.FormAuthenticator(
-                username=options.username,
-                password=options.password,
-                domain=options.domain
-            )
         else:
             raise Exception(
                 "username and domain provided but no password or keytab was given")
     elif options.username or options.domain:
         raise Exception(
-            "both username and domain are required for ntlm or keytab authentication")
+            "both username and domain are required for ntlm, keytab or form authentication")
     else:
         authenticator = auth.KerberosAuthenticator()
 
@@ -213,6 +217,7 @@ def main():
             break
         logging.info('')
         time.sleep(60 * options.refresh)
+
 
 if __name__ == "__main__":
     main()

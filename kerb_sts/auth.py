@@ -70,7 +70,7 @@ class NtlmAuthenticator(Authenticator):
         return 'ntlm'
 
 
- class FormAuthenticator(Authenticator):
+class FormAuthenticator(Authenticator):
     """
     The FormAuthenticator authenticates users using the ADFS SAML form
     """
@@ -82,10 +82,9 @@ class NtlmAuthenticator(Authenticator):
 
     def get_auth_handler(self, session):
         return {
-            "{}\\{}".format(self.domain, self.username),
-            self.password,
+            'username': "{}\\{}".format(self.domain, self.username),
+            'password': self.password
         }
-
 
     @staticmethod
     def get_auth_type():
@@ -111,12 +110,14 @@ class KeytabAuthenticator(Authenticator):
         credentials_cache = os.path.join(os.getcwd(), 'credentials_cache')
         os.environ['KRB5CCNAME'] = credentials_cache
 
-        # Call kinit to generate a Kerberos ticket for the given username and keytab
+        # Call kinit to generate a Kerberos ticket for the given username and
+        # keytab
         try:
             subprocess.check_output(['kinit', '-c', credentials_cache, '-kt', self.keytab,
                                      "{}@{}".format(self.username, self.domain)])
         except subprocess.CalledProcessError:
-            raise Exception("could not generate a valid ticket for the given keytab")
+            raise Exception(
+                "could not generate a valid ticket for the given keytab")
 
     def get_auth_handler(self, session):
         return HTTPKerberosAuth(mutual_authentication=OPTIONAL)
@@ -124,4 +125,3 @@ class KeytabAuthenticator(Authenticator):
     @staticmethod
     def get_auth_type():
         return 'keytab'
-

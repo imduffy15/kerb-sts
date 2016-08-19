@@ -1,11 +1,12 @@
 import base64
-import boto.sts
-import configparser
 import logging
 import os
-import requests
 import xml.etree.ElementTree as ET
 
+import boto.sts
+import configparser
+import re
+import requests
 from bs4 import BeautifulSoup
 
 from kerb_sts.awsrole import AWSRole
@@ -43,13 +44,21 @@ class KerberosHandler:
             'User-Agent': 'Mozilla/5.0 (compatible, MSIE 11, Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko'}
 
         # Query ADFS for a SAML token
-        response = session.get(
-            url,
-            verify=self.ssl_verification,
-            headers=headers,
-            auth=authenticator.get_auth_handler(session)
-        )
-        logging.debug("received {} adfs response".format(response.status_code))
+        response = None
+        if authenticator.get_auth_type() is "keytab":
+            response = self._handle_keytab_request(
+                url, session, headers, authenticator)
+        elif authenticator.get_auth_type is "ntlm":
+            response = self._handle_keytab_request(
+                url, session, headers, authenticator)
+        elif authenticator.get_auth_type() is "form":
+            response = self._handle_form_requests(
+                url, session, headers, authenticator)
+
+        if response is None:
+            raise Exception(
+                "Did not get a valid authentication type for ADFS"
+            )
 
         if response.status_code != requests.codes.ok:
             raise Exception(
@@ -57,10 +66,50 @@ class KerberosHandler:
                     response.status_code, response.text)
             )
 
+        logging.debug("received {} adfs response".format(response.status_code))
+
         # We got a successful response from ADFS. Parse the assertion and pass
         # it to AWS
         self._handle_sts_from_response(
             response, region, config_filename, default_role, list_only)
+
+    def _handle_form_requests(self, url, session, headers, authenticator):
+        credentials = authenticator.get_auth_handler(session)
+        response = session.get(url, headers=headers,
+                               verify=self.ssl_verification)
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        payload_dict = {}
+        for inputtag in soup.find_all(re.compile('(INPUT|input)')):
+            name = inputtag.get('name', '')
+            value = inputtag.get('value', '')
+            if "user" in name.lower():
+                payload_dict[name] = credentials['username']
+            elif "pass" in name.lower():
+                payload_dict[name] = credentials['password']
+            else:
+                # Simply populate the parameter with the existing value
+                # (picks up hidden fields in the login form)
+                payload_dict[name] = value
+        for inputtag in soup.find_all(re.compile('(FORM|form)')):
+            action = inputtag.get('action')
+
+        return session.post(action, data=payload_dict,
+                            verify=self.ssl_verification)
+
+    def _handle_ntlm_request(self, url, headers, authenticator):
+        return self._handle_auth_headers_request(url, headers, authenticator)
+
+    def _handle_keytab_request(self, url, session, headers, authenticator):
+        return self._handle_auth_headers_request(url, session, headers, authenticator)
+
+    def _handle_auth_headers_request(self, url, session, headers, authenticator):
+        return session.get(
+            url,
+            verify=self.ssl_verification,
+            headers=headers,
+            auth=authenticator.get_auth_handler(session)
+        )
 
     def _handle_sts_from_response(self, response, region, config_filename, default_role, list_only):
         """
