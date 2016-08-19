@@ -11,9 +11,10 @@ from os import path, environ
 import subprocess
 
 try:
-  version = subprocess.check_output(['git', 'describe', '--tags']).decode('utf-8').rstrip()
+    version = subprocess.check_output(
+        ['git', 'describe', '--tags']).decode('utf-8').rstrip()
 except:
-  version = '0.0.0'
+    version = '0.0.0'
 
 here = path.abspath(path.dirname(__file__))
 
@@ -47,7 +48,7 @@ setup(
         'requests-kerberos==0.8.0',
         'configparser==3.5.0b2'
     ],
-    
+
     entry_points={
         'console_scripts': [
             'kerb-sts=kerb_sts.__main__:main'

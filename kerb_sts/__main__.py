@@ -27,7 +27,8 @@ def _get_options():
     Parses the command line options.
     :return: an options object
     """
-    parser = argparse.ArgumentParser(description="Generates 1 hour temporary AWS IAM credentials.")
+    parser = argparse.ArgumentParser(
+        description="Generates 1 hour temporary AWS IAM credentials.")
     parser.add_argument('--adfs', help="ADFS IdP domain name",
                         dest='adfs_url')
     parser.add_argument('-c', '--credentials_file', help="AWSCLI credentials file (defaults ~/.aws/credentials)",
@@ -42,6 +43,8 @@ def _get_options():
                         dest='domain', default=None)
     parser.add_argument('--keytab', help="The Kerberos keytab file. Requires a username and domain",
                         dest='keytab', default=None)
+    parser.add_argument('--form', help="Authenticate using the ADFS html form. Requires a username, password and domain",
+                        dest='form', default=None)
     parser.add_argument('--list', help="List the available roles",
                         dest='list', action='store_true', default=False)
     parser.add_argument('-p', '--password', help="AD Password if generating a temporary Kerberos token. Requires a username and domain",
@@ -127,10 +130,18 @@ def _setup_authenticator(options):
                 keytab=options.keytab,
                 domain=options.domain
             )
+        elif options.form:
+            authenticator = auth.FormAuthenticator(
+                username=options.username,
+                password=options.password,
+                domain=options.domain
+            )
         else:
-            raise Exception("username and domain provided but no password or keytab was given")
+            raise Exception(
+                "username and domain provided but no password or keytab was given")
     elif options.username or options.domain:
-        raise Exception("both username and domain are required for ntlm or keytab authentication")
+        raise Exception(
+            "both username and domain are required for ntlm or keytab authentication")
     else:
         authenticator = auth.KerberosAuthenticator()
 

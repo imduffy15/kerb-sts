@@ -3,6 +3,7 @@ from kerb_sts.awsrole import AWSRole
 
 
 class TestAWSRoleCreation(unittest.TestCase):
+
     def test_with_role_as_none(self):
         is_valid = AWSRole.is_valid(None)
         self.assertFalse(is_valid)

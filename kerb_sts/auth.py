@@ -70,6 +70,28 @@ class NtlmAuthenticator(Authenticator):
         return 'ntlm'
 
 
+ class FormAuthenticator(Authenticator):
+    """
+    The FormAuthenticator authenticates users using the ADFS SAML form
+    """
+
+    def __init__(self, username, password, domain):
+        self.username = username
+        self.password = password
+        self.domain = domain
+
+    def get_auth_handler(self, session):
+        return {
+            "{}\\{}".format(self.domain, self.username),
+            self.password,
+        }
+
+
+    @staticmethod
+    def get_auth_type():
+        return 'form'
+
+
 class KeytabAuthenticator(Authenticator):
     """
     The KeytabAuthenticator allows users to sign keytabs with

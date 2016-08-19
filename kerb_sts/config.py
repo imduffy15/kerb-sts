@@ -33,7 +33,8 @@ class Config:
         if not os.path.exists(os.path.dirname(filename)):
             os.makedirs(os.path.dirname(filename))
 
-        dictionary = {Config.ADFS_URL_KEY: self.adfs_url, Config.REGION_KEY: self.region}
+        dictionary = {Config.ADFS_URL_KEY: self.adfs_url,
+                      Config.REGION_KEY: self.region}
         with open(filename, 'w') as f:
             json.dump(dictionary, f)
             logging.info("config file saved to {}".format(filename))

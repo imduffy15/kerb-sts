@@ -39,7 +39,8 @@ class KerberosHandler:
         """
 
         session = requests.Session()
-        headers = {'User-Agent': 'Mozilla/5.0 (compatible, MSIE 11, Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko'}
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (compatible, MSIE 11, Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko'}
 
         # Query ADFS for a SAML token
         response = session.get(
@@ -52,11 +53,14 @@ class KerberosHandler:
 
         if response.status_code != requests.codes.ok:
             raise Exception(
-                "did not get a valid adfs reply. response was: {} {}".format(response.status_code, response.text)
+                "did not get a valid adfs reply. response was: {} {}".format(
+                    response.status_code, response.text)
             )
 
-        # We got a successful response from ADFS. Parse the assertion and pass it to AWS
-        self._handle_sts_from_response(response, region, config_filename, default_role, list_only)
+        # We got a successful response from ADFS. Parse the assertion and pass
+        # it to AWS
+        self._handle_sts_from_response(
+            response, region, config_filename, default_role, list_only)
 
     def _handle_sts_from_response(self, response, region, config_filename, default_role, list_only):
         """
@@ -79,7 +83,8 @@ class KerberosHandler:
                 assertion = inputtag.get('value')
 
         if not assertion:
-            raise Exception("did not get a valid SAML response. response was:\n%s" % response.text)
+            raise Exception(
+                "did not get a valid SAML response. response was:\n%s" % response.text)
 
         # Parse the returned assertion and extract the authorized roles
         aws_roles = []
@@ -113,7 +118,8 @@ class KerberosHandler:
                     found_default_role = True
                     break
             if not found_default_role:
-                raise Exception("provided default role not found in list of available roles")
+                raise Exception(
+                    "provided default role not found in list of available roles")
 
         # Go through each of the available roles and
         # attempt to get temporary tokens for each
@@ -132,9 +138,11 @@ class KerberosHandler:
                 expires_utc = token.credentials.expiration
 
                 if default_role == profile:
-                    logging.info("default role: {} until {}".format(profile, expires_utc))
+                    logging.info("default role: {} until {}".format(
+                        profile, expires_utc))
                 else:
-                    logging.info("role: {} until {}".format(profile, expires_utc))
+                    logging.info("role: {} until {}".format(
+                        profile, expires_utc))
 
     def _bind_assertion_to_role(self, assertion, role, profile, region, config_filename, default_role):
         """
@@ -149,12 +157,14 @@ class KerberosHandler:
         """
 
         # Attempt to assume the IAM role
-        conn = boto.sts.connect_to_region(region, aws_secret_access_key='', aws_access_key_id='')
+        conn = boto.sts.connect_to_region(
+            region, aws_secret_access_key='', aws_access_key_id='')
         role_arn = role.split(',')[0]
         principal_arn = role.split(',')[1]
         token = conn.assume_role_with_saml(role_arn, principal_arn, assertion)
         if not token:
-            raise Exception("failed to receive a valid token when assuming a role.")
+            raise Exception(
+                "failed to receive a valid token when assuming a role.")
 
         # Write the AWS STS token into the AWS credential file
         # Read in the existing config file
