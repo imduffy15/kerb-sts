@@ -48,7 +48,10 @@ class KerberosHandler:
         if authenticator.get_auth_type() is "keytab":
             response = self._handle_keytab_request(
                 url, session, headers, authenticator)
-        elif authenticator.get_auth_type is "ntlm":
+        elif authenticator.get_auth_type() is "ntlm":
+            response = self._handle_keytab_request(
+                url, session, headers, authenticator)
+        elif authenticator.get_auth_type() is "kerberos":
             response = self._handle_keytab_request(
                 url, session, headers, authenticator)
         elif authenticator.get_auth_type() is "form":
@@ -96,6 +99,10 @@ class KerberosHandler:
 
         return session.post(action, data=payload_dict,
                             verify=self.ssl_verification)
+
+    def _handle_kerberos_request(self, url, headers, authenticator):
+        return self._handle_auth_headers_request(url, headers, authenticator)
+
 
     def _handle_ntlm_request(self, url, headers, authenticator):
         return self._handle_auth_headers_request(url, headers, authenticator)
